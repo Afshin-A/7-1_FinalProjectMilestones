@@ -84,12 +84,8 @@ bool SceneManager::CreateGLTexture(const char* filename, std::string tag)
 		glGenTextures(1, &textureID);
 		glBindTexture(GL_TEXTURE_2D, textureID);
 
-		// set the texture wrapping parameters
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-		// set texture filtering parameters
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+
 
 		// if the loaded image is in RGB format
 		if (colorChannels == 3)
@@ -105,6 +101,15 @@ bool SceneManager::CreateGLTexture(const char* filename, std::string tag)
 
 		// generate the texture mipmaps for mapping textures to lower resolutions
 		glGenerateMipmap(GL_TEXTURE_2D);
+
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		float borderColor[] = { 1.0f, 0.0f, 0.0f, 1.0f };  // Red border
+		glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+
+
 
 		// free the image data from local memory
 		stbi_image_free(image);
@@ -365,6 +370,13 @@ void SceneManager::SetShaderMaterial(
 	}
 }
 
+void SceneManager::loadTextureFromFile(std::string fileName, std::string tag) {
+	auto texturesPath = std::filesystem::current_path() / "textures";
+	std::filesystem::path texPath = texturesPath / fileName;
+	std::string texPathStr = texPath.string();
+	CreateGLTexture(texPathStr.c_str(), tag);
+
+}
 
 void SceneManager::LoadSceneTextures()
 {
@@ -373,15 +385,12 @@ void SceneManager::LoadSceneTextures()
 	/*** 16 textures can be loaded per scene. Refer to the code in   ***/
 	/*** the OpenGL Sample for help.                                 ***/
 
-	auto texturesPath = std::filesystem::current_path() / "textures";
-	std::filesystem::path floorPath = texturesPath / "wood-tile.jpg";
-	std::filesystem::path wrapPath = texturesPath / "wrapping-paper.jpg";
-
-	std::string floorPathStr = floorPath.string();
-	std::string wrapPathStr = wrapPath.string();
-
-	CreateGLTexture(floorPathStr.c_str(), "floor");
-	CreateGLTexture(wrapPathStr.c_str(), "present");
+	loadTextureFromFile("wood-tile.jpg", "floor");
+	loadTextureFromFile("wrapping-paper.jpg", "present");
+	loadTextureFromFile("stainless.jpg", "stainless");
+	loadTextureFromFile("swiss-cheese.jpg", "cheese");
+	loadTextureFromFile("backdrop.jpg", "backdrop");
+	loadTextureFromFile("book.jpg", "book");
 
 
 	// after the texture image data is loaded into memory, the
@@ -450,17 +459,17 @@ void SceneManager::SetupSceneLights()
 	// the 3D scene with custom lighting, if no light sources have
 	// been added then the display window will be black - to use the 
 	// default OpenGL lighting then comment out the following line
-	m_pShaderManager->setBoolValue(g_UseLightingName, true);
+	//m_pShaderManager->setBoolValue(g_UseLightingName, true);
 
 	/*** STUDENTS - add the code BELOW for setting up light sources ***/
 	/*** Up to four light sources can be defined. Refer to the code ***/
 	/*** in the OpenGL Sample for help                              ***/
 
-	glm::vec3 lightPosition = glm::vec3(0.0f, 10.0f, 0.0f);
+	glm::vec3 lightPosition = glm::vec3(350.f, 350.0f, 350.0f);
 	glm::vec3 ambientColor = glm::vec3(1.0f, 1.0f, 1.0f); // Soft white
-	glm::vec3 diffuseColor = glm::vec3(0.8f, 0.8f, 0.8f); // Soft white
-	glm::vec3 specularColor = glm::vec3(1.0f, 1.0f, 1.0f); // Bright white
-	float focalStrength = 12.0f;
+	glm::vec3 diffuseColor = glm::vec3(1.0f, 1.0f, 1.0f); // Soft white
+	glm::vec3 specularColor = glm::vec3(.1f, .1f, .1f); // Bright white
+	float focalStrength = 10.f;
 	float specularIntensity = 1.f;
 
 	// Pass the light properties to the shader
@@ -486,7 +495,7 @@ void SceneManager::PrepareScene()
 	LoadSceneTextures();
 
 	// define the materials for objects in the scene
-	//DefineObjectMaterials();
+	DefineObjectMaterials();
 	
 	// add and define the light sources for the scene
 	SetupSceneLights();
@@ -500,6 +509,10 @@ void SceneManager::PrepareScene()
 	m_basicMeshes->LoadCylinderMesh();
 	m_basicMeshes->LoadConeMesh();
 	m_basicMeshes->LoadBoxMesh();
+	m_basicMeshes->LoadTaperedCylinderMesh();
+	m_basicMeshes->LoadSphereMesh();
+	m_basicMeshes->LoadTorusMesh();
+	m_basicMeshes->LoadPyramid4Mesh();
 }
 
 /***********************************************************
@@ -548,7 +561,7 @@ void SceneManager::RenderScene()
 	/****************************************************************/
 
 
-	/*** Book 1														***/
+	/*** book 1														***/
 	/******************************************************************/
 	// set the XYZ scale for the mesh
 	scaleXYZ = glm::vec3(10.0f, 0.4f, 5.0f);
@@ -570,26 +583,23 @@ void SceneManager::RenderScene()
 		positionXYZ);
 
 	SetShaderColor(1, 0, 0, 1);
-	SetShaderTexture("present");
-	SetShaderMaterial("silver");
+	SetShaderTexture("book");
+	//SetShaderMaterial("silver");
 	// draw the mesh with transformation values
 	m_basicMeshes->DrawBoxMesh();
 	/****************************************************************/
 
-	/*** Book 2														***/
+
+	/*** book 2														***/
 	/******************************************************************/
-	// set the XYZ scale for the mesh
 	scaleXYZ = glm::vec3(8.0f, 0.3f, 5.0f);
 
-	// set the XYZ rotation for the mesh
 	XrotationDegrees = 0.0f;
 	YrotationDegrees = 0.0f;
 	ZrotationDegrees = 0.0f;
 
-	// set the XYZ position for the mesh
 	positionXYZ = glm::vec3(0.0f, 0.6f, 4.8f);
 
-	// set the transformations into memory to be used on the drawn meshes
 	SetTransformations(
 		scaleXYZ,
 		XrotationDegrees,
@@ -598,24 +608,121 @@ void SceneManager::RenderScene()
 		positionXYZ);
 
 	SetShaderColor(0, 1, 0, 1);
-	SetShaderTexture("present");
-	SetShaderMaterial("silver");
-	// draw the mesh with transformation values
+	SetShaderTexture("backdrop");
+	//SetShaderMaterial("silver");
 	m_basicMeshes->DrawBoxMesh();
 	/****************************************************************/
 
-	/*** Book 3													***/
+
+	/*** book 3														***/
 	/******************************************************************/
-	// set the XYZ scale for the mesh
 	scaleXYZ = glm::vec3(7.0f, 0.3f, 3.0f);
 
-	// set the XYZ rotation for the mesh
 	XrotationDegrees = 0.0f;
 	YrotationDegrees = -10.0f;
 	ZrotationDegrees = 0.0f;
 
-	// set the XYZ position for the mesh
 	positionXYZ = glm::vec3(0.0f, 0.9f, 5.4f);
+
+	SetTransformations(
+		scaleXYZ,
+		XrotationDegrees,
+		YrotationDegrees,
+		ZrotationDegrees,
+		positionXYZ);
+
+	SetShaderColor(0, 0, 1, 1);
+	SetShaderTexture("present");
+	//SetShaderMaterial("silver");
+	m_basicMeshes->DrawBoxMesh();
+	/****************************************************************/
+
+
+
+	/*** Cup body													***/
+	/******************************************************************/
+	scaleXYZ = glm::vec3(1.0f, 2.5f, 1.0f);
+
+	XrotationDegrees = 0.0f;
+	YrotationDegrees = -10.0f;
+	ZrotationDegrees = 0.0f;
+
+	positionXYZ = glm::vec3(2.0f, 0.0f, 0.f);
+
+	SetTransformations(
+		scaleXYZ,
+		XrotationDegrees,
+		YrotationDegrees,
+		ZrotationDegrees,
+		positionXYZ);
+
+	SetShaderColor(0, 0, 1, 1);
+	SetShaderTexture("stainless");
+	SetShaderMaterial("silver");
+
+	m_basicMeshes->DrawCylinderMesh();
+	/****************************************************************/
+
+
+	/*** Coffee	- inverted cone										***/
+	/******************************************************************/
+	scaleXYZ = glm::vec3(.9f, 2.5f, 1.0f);
+
+	XrotationDegrees = 0.0f;
+	YrotationDegrees = 0.0f;
+	ZrotationDegrees = 180.0f;
+
+	positionXYZ = glm::vec3(2.0f, 2.6f, 0.f);
+
+	SetTransformations(
+		scaleXYZ,
+		XrotationDegrees,
+		YrotationDegrees,
+		ZrotationDegrees,
+		positionXYZ);
+
+	SetShaderColor(0.435f, 0.305f, 0.215f, 1);
+	SetShaderMaterial("silver");
+	m_basicMeshes->DrawConeMesh();
+	/****************************************************************/
+
+
+	/*** Cup handle													***/
+	/******************************************************************/
+	scaleXYZ = glm::vec3(0.5f, 1.f, 1.0f);
+
+	XrotationDegrees = 0.0f;
+	YrotationDegrees = 0.0f;
+	ZrotationDegrees = -90.0f;
+
+	positionXYZ = glm::vec3(3.f, 1.5f, 0.f);
+
+	SetTransformations(
+		scaleXYZ,
+		XrotationDegrees,
+		YrotationDegrees,
+		ZrotationDegrees,
+		positionXYZ);
+
+	SetShaderColor(1, 0, 0, 1);
+	SetShaderTexture("stainless");
+	//SetShaderMaterial("silver");
+	m_basicMeshes->DrawHalfTorusMesh();
+	/****************************************************************/
+
+
+	/*** Block of cheese 											***/
+	/******************************************************************/
+	// set the XYZ scale for the mesh
+	scaleXYZ = glm::vec3(1.0f, 2.3f, 1.0f);
+
+	// set the XYZ rotation for the mesh
+	XrotationDegrees = 0.0f;
+	YrotationDegrees = 30.0f;
+	ZrotationDegrees = 110.0f;
+
+	// set the XYZ position for the mesh
+	positionXYZ = glm::vec3(0.0f, 0.f, 0.f);
 
 	// set the transformations into memory to be used on the drawn meshes
 	SetTransformations(
@@ -626,9 +733,9 @@ void SceneManager::RenderScene()
 		positionXYZ);
 
 	SetShaderColor(0, 0, 1, 1);
-	SetShaderTexture("present");
-	SetShaderMaterial("silver");
+	SetShaderTexture("cheese");
+	//SetShaderMaterial("silver");
 	// draw the mesh with transformation values
-	m_basicMeshes->DrawBoxMesh();
+	m_basicMeshes->DrawPyramid4Mesh();
 	/****************************************************************/
 }

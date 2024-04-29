@@ -97,6 +97,8 @@ private:
 	void SetShaderMaterial(
 		std::string materialTag);
 
+	void loadTextureFromFile(std::string fileName, std::string tag);
+
 	void LoadSceneTextures();
 
 	void DefineObjectMaterials();
